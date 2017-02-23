@@ -6,7 +6,7 @@
 
 import maya.cmds as mc
 
-def locator_center(components):
+def locator_center():
     components=mc.ls(sl=True, fl=True)
     longueur= len(components)
 
@@ -25,7 +25,7 @@ def locator_center(components):
     placementY= toty / longueur
     placementZ= totz / longueur
 
-    loc= mc.spaceLocatore(n='centered_locator')
+    loc= mc.spaceLocator(n='centered_locator')
     mc.move(placementX, placementY, placementZ, loc)
 
 locator_center()
