@@ -1,15 +1,8 @@
 #!/usr/bin/env python
 # coding:utf-8
-""":mod:`inTools`
-===================================
 
-.. module:: inTools
-   :platform: Unix
-   :synopsis: tools needed in facial tool def
-   :author: lcm
-   :date: 2017.02
 
-"""
+
 import maya.cmds as mc
 
 
@@ -36,10 +29,11 @@ def more_ctrl(names=None):
         bonename = '{}_{}_ctrl'.format(inter, i + 1)
         origname = '{}_{}_orig'.format(inter, i + 1)
         mc.createNode('joint', n=bonename)
+        mc.setAttr(bonename+'.radius', 0.1)
         mc.createNode('transform', n=origname)
         snap_from_to(bonename, origname)
         mc.parent(bonename, origname, relative=False)
-        create_shape(bonename, 1)
+        create_shape(bonename, 0.1)
         sysList.append((bonename, origname))
 
     return sysList

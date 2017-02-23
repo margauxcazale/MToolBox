@@ -1,16 +1,6 @@
 #!/usr/bin/env python
 # coding:utf-8
-""":mod:`facial_lucky_cats`
-===================================
 
-.. module:: builder_eye_lucky_cats
-   :platform: Unix
-   :synopsis: build rig system for lucky cats eyes
-    + snap by same words Option between meshes and ctrls
-   :author: lcm
-   :date: 2017.02
-
-"""
 
 import maya.cmds as mc
 import inTools as tool
@@ -23,6 +13,8 @@ def lucky_facial(body):
     plaques = mc.ls(sl=True)
     recup_plaques = []
     recup_locators = []
+    if len(plaques) == 0:
+        return
 
     for ind, mesh in enumerate(plaques):
         # create locator and snap it to mesh
@@ -39,18 +31,21 @@ def lucky_facial(body):
     # snap aux locs
     for i, locator in enumerate(recup_locators):
         tool.snap_from_to(locator, ctrl_tuple[i][1])
+        mc.delete(locator)
 
     # skin and shrinkwrap
     for ind, mesh in enumerate(plaques):
         mc.skinCluster(mesh, ctrl_tuple[ind][0], tsb=True, rui=True)
-        deform = mc.deformer('shrinkWrap_facial', e=True, g=mesh)
         deform = 'shrinkWrap_facial'
         if not mc.objExists(deform):
             deform = mc.deformer(mesh, n='shrinkWrap_facial', type='shrinkWrap')[0]
             mc.setAttr(deform + '.projection', 3)
             mc.setAttr(deform + '.bidirectional', 1)
             mc.connectAttr(body + '.worldMesh[0]', deform + '.targetGeom')
-        mc.polyMoveFacet(ltz=float(ind + 1) / 1000)
+        deform = mc.deformer('shrinkWrap_facial', e=True, g=mesh)
+        mc.polyMoveFacet(mesh, ltz=float(ind + 2) / 1000)
+
+    print('First pass successfully done ! ROGER')
 
 
 # -------------------------------------------------
@@ -68,25 +63,16 @@ def add_to_system():
     if len(bone) >= 1:
         bone = bone[0]
 
-    for plane in ajout:
+    for ind, plane in enumerate(ajout):
         mc.skinCluster(plane, bone, tsb=True, rui=True)
         deform = mc.deformer('shrinkWrap_facial', e=True, g=plane)
+        mc.polyMoveFacet(plane, ltz=float(ind + 2) / 1000)
 
+
+    print('bravo')
 
 # -------------------------------------------------
-def add_emotions(expressions=[]):
-    expressions = []
+def add_emotions(expressions):
     masters = mc.ls(sl=True)
-    names_enum = ':'.join(expressions)
-    print names_enum
     for master in masters:
-        mc.addAttr(master, ln='expressions', nn='Expressions', at='enum', keyable=True)
-        mc.setAttr(master + '.expressions', e=True, en=names_enum)
-
-
-#def prout(**kwargs):
-#     print kwargs
-#
-# prout(toto=1, margouette='colouette')
-
-
+        mc.addAttr(master, ln='expressions', nn='Expressions', at='enum', keyable=True, enumName= expressions)
