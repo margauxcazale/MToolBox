@@ -1,14 +1,13 @@
-#!/usr/bin/env python
-# coding:utf-8
 
 
 import maya.cmds as mc
 import inTools as tool
-
+import maya.mel as mel
 reload(tool)
+reload(mel)
 
 
-def lucky_facial(body):
+def lucky_facial(body, deformname):
     # body est le mesh de base sur lequel on va mettre les plaques
     plaques = mc.ls(sl=True)
     recup_plaques = []
@@ -22,8 +21,8 @@ def lucky_facial(body):
         tool.snap_from_to(mesh, locator)
         recup_locators.append(locator)
         # recup name part to name ctrl
-        no_ns = mesh.split(':')[1]
-        recup = no_ns.split('_')[-2]
+        nohi = mesh.split('_')[1:-1]
+        recup = '_'.join(nohi)
         recup_plaques.append(recup)
 
     # ctrlTuple est une liste de tuples
@@ -36,13 +35,16 @@ def lucky_facial(body):
     # skin and shrinkwrap
     for ind, mesh in enumerate(plaques):
         mc.skinCluster(mesh, ctrl_tuple[ind][0], tsb=True, rui=True)
-        deform = 'shrinkWrap_facial'
+
+        deform = deformname
         if not mc.objExists(deform):
-            deform = mc.deformer(mesh, n='shrinkWrap_facial', type='shrinkWrap')[0]
+            deform = mc.deformer(mesh, n=deformname, type='shrinkWrap')[0]
             mc.setAttr(deform + '.projection', 3)
+            mc.setAttr(deform + '.closestIfNoIntersection', 1)
             mc.setAttr(deform + '.bidirectional', 1)
             mc.connectAttr(body + '.worldMesh[0]', deform + '.targetGeom')
-        deform = mc.deformer('shrinkWrap_facial', e=True, g=mesh)
+
+        deform = mc.deformer(deformname, e=True, g=mesh)
         mc.polyMoveFacet(mesh, ltz=float(ind + 2) / 1000)
 
     print('First pass successfully done ! ROGER')
@@ -50,7 +52,7 @@ def lucky_facial(body):
 
 # -------------------------------------------------
 def add_to_system():
-    # on selectionne un mesh et un joint. A priori le joint
+    # on selectionne des mesh et un joint.
     depart = mc.ls(sl=True)
     bone = []
     ajout = []
@@ -65,14 +67,36 @@ def add_to_system():
 
     for ind, plane in enumerate(ajout):
         mc.skinCluster(plane, bone, tsb=True, rui=True)
-        deform = mc.deformer('shrinkWrap_facial', e=True, g=plane)
+        swName= mc.listHistory(plane)[2]
+        deform = mc.deformer(swName, e=True, g=plane)
         mc.polyMoveFacet(plane, ltz=float(ind + 2) / 1000)
 
-
-    print('bravo')
+# -------------------------------------------------
+def remove_from_system():
+    # on selectionne une liste de mesh.
+    depart = mc.ls(sl=True)
+    if len(depart) == 0:
+        return
+    for mesh in depart:
+        swName= mc.listHistory(mesh)[2]
+        if mc.getAttr(swName+'.envelope') == 1:
+            mc.setAttr(swName+'.envelope',0)
+            mc.deformer(e=True, rm=True, g=mesh, swName)
+            #cmd =str('deformer -e -rm -g "{}" "shrinkWrap_facial"'.format(mesh))
+            #mel.eval(cmd)
+            mc.skinCluster(mesh, e=True, ub=True)
+            cleanM ='{}.output'.format(mc.listHistory(mesh)[1])
+            mc.disconnectAttr(cleanM, mesh + '.inMesh')
+        mc.setAttr(swName+'.envelope', 1)
 
 # -------------------------------------------------
-def add_emotions(expressions):
+def add_expressions(part_name, expressions):
+
     masters = mc.ls(sl=True)
+
     for master in masters:
-        mc.addAttr(master, ln='expressions', nn='Expressions', at='enum', keyable=True, enumName= expressions)
+        if part_name == '':
+            part_name = "Expressions"
+            mc.addAttr(master, ln=part_name, nn=part_name, at='enum', keyable=False, enumName=expressions)
+        else:
+            mc.addAttr(master, ln=part_name, nn=part_name, at='enum', keyable=True, enumName= expressions)
